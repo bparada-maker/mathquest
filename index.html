@@ -1,0 +1,1361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MathQuest — Adventure Tutor</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --sky: #0f172a;
+    --panel: #1e293b;
+    --card: #243044;
+    --border: #334155;
+    --accent: #f59e0b;
+    --accent2: #10b981;
+    --accent3: #6366f1;
+    --accent4: #ef4444;
+    --text: #f1f5f9;
+    --muted: #94a3b8;
+    --radius: 16px;
+    --shadow: 0 8px 32px rgba(0,0,0,0.4);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Nunito', sans-serif;
+    background: var(--sky);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── Stars background ── */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      radial-gradient(1px 1px at 20% 30%, rgba(255,255,255,.6) 0%, transparent 100%),
+      radial-gradient(1px 1px at 80% 10%, rgba(255,255,255,.5) 0%, transparent 100%),
+      radial-gradient(1px 1px at 50% 60%, rgba(255,255,255,.4) 0%, transparent 100%),
+      radial-gradient(1px 1px at 10% 80%, rgba(255,255,255,.5) 0%, transparent 100%),
+      radial-gradient(1px 1px at 90% 70%, rgba(255,255,255,.3) 0%, transparent 100%),
+      radial-gradient(1px 1px at 35% 45%, rgba(255,255,255,.4) 0%, transparent 100%),
+      radial-gradient(1px 1px at 65% 85%, rgba(255,255,255,.5) 0%, transparent 100%),
+      radial-gradient(2px 2px at 75% 25%, rgba(255,255,255,.3) 0%, transparent 100%),
+      radial-gradient(2px 2px at 15% 55%, rgba(255,255,255,.2) 0%, transparent 100%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .screen { display: none; position: relative; z-index: 1; }
+  .screen.active { display: flex; flex-direction: column; align-items: center; min-height: 100vh; padding: 24px 16px; }
+
+  /* ── Typography ── */
+  h1, h2, .logo { font-family: 'Fredoka One', cursive; letter-spacing: .5px; }
+
+  /* ── Buttons ── */
+  .btn {
+    font-family: 'Nunito', sans-serif;
+    font-weight: 800;
+    font-size: 1rem;
+    padding: 12px 28px;
+    border: none;
+    border-radius: 50px;
+    cursor: pointer;
+    transition: transform .15s, box-shadow .15s;
+    letter-spacing: .3px;
+  }
+  .btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,.4); }
+  .btn:active { transform: translateY(0); }
+  .btn-gold { background: var(--accent); color: #1a1a1a; }
+  .btn-green { background: var(--accent2); color: #fff; }
+  .btn-purple { background: var(--accent3); color: #fff; }
+  .btn-red { background: var(--accent4); color: #fff; }
+  .btn-ghost { background: transparent; color: var(--muted); border: 2px solid var(--border); }
+  .btn-sm { font-size: .85rem; padding: 8px 18px; }
+
+  /* ── Cards ── */
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+    box-shadow: var(--shadow);
+  }
+
+  /* ── Logo bar ── */
+  .topbar {
+    width: 100%;
+    max-width: 680px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 32px;
+  }
+  .logo { font-size: 1.6rem; color: var(--accent); }
+  .logo span { color: var(--accent2); }
+
+  /* ══════════════════════════════
+     SCREEN: CHARACTER SELECT
+  ══════════════════════════════ */
+  #screen-char { justify-content: flex-start; gap: 24px; }
+  .char-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    width: 100%;
+    max-width: 480px;
+  }
+  .char-card {
+    background: var(--card);
+    border: 2px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px 16px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color .2s, transform .2s, background .2s;
+  }
+  .char-card:hover { border-color: var(--accent); transform: translateY(-4px); background: #2d3f5a; }
+  .char-card.selected { border-color: var(--accent2); background: #1a3a2e; }
+  .char-emoji { font-size: 3rem; margin-bottom: 8px; }
+  .char-name { font-family: 'Fredoka One', cursive; font-size: 1.1rem; color: var(--accent); }
+  .char-desc { font-size: .78rem; color: var(--muted); margin-top: 4px; }
+
+  .name-row { display: flex; gap: 10px; width: 100%; max-width: 480px; }
+  .name-input {
+    flex: 1;
+    background: var(--panel);
+    border: 2px solid var(--border);
+    border-radius: 50px;
+    padding: 12px 20px;
+    font-family: 'Nunito', sans-serif;
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text);
+    outline: none;
+    transition: border-color .2s;
+  }
+  .name-input:focus { border-color: var(--accent); }
+  .name-input::placeholder { color: var(--muted); font-weight: 400; }
+
+  /* ══════════════════════════════
+     SCREEN: PLACEMENT QUIZ
+  ══════════════════════════════ */
+  #screen-placement { gap: 20px; }
+  .placement-header { text-align: center; max-width: 500px; }
+  .placement-header h2 { font-size: 1.8rem; margin-bottom: 8px; }
+  .placement-header p { color: var(--muted); font-size: .95rem; }
+
+  .quiz-card {
+    width: 100%;
+    max-width: 500px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 32px 28px;
+    text-align: center;
+  }
+  .q-number { font-size: .8rem; color: var(--muted); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px; }
+  .q-text { font-family: 'Fredoka One', cursive; font-size: 2.6rem; color: var(--text); margin-bottom: 28px; }
+  .q-input {
+    width: 140px;
+    background: var(--panel);
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 10px;
+    font-family: 'Fredoka One', cursive;
+    font-size: 2rem;
+    color: var(--accent);
+    text-align: center;
+    outline: none;
+    transition: border-color .2s;
+  }
+  .q-input:focus { border-color: var(--accent); }
+  .q-feedback { margin-top: 16px; font-weight: 700; font-size: 1rem; min-height: 24px; }
+  .q-feedback.correct { color: var(--accent2); }
+  .q-feedback.wrong { color: var(--accent4); }
+
+  .progress-bar-wrap { width: 100%; max-width: 500px; background: var(--panel); border-radius: 50px; height: 8px; overflow: hidden; }
+  .progress-bar-fill { height: 100%; background: linear-gradient(90deg, var(--accent3), var(--accent2)); border-radius: 50px; transition: width .4s ease; }
+
+  /* ══════════════════════════════
+     SCREEN: MAIN GAME
+  ══════════════════════════════ */
+  #screen-game { gap: 16px; }
+
+  .hud {
+    width: 100%;
+    max-width: 680px;
+    display: flex;
+    gap: 12px;
+    align-items: center;
+  }
+  .hud-item {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 50px;
+    padding: 8px 16px;
+    font-size: .85rem;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .hud-item .val { color: var(--accent); font-family: 'Fredoka One', cursive; font-size: 1rem; }
+  .hud-item.streak .val { color: #f97316; }
+  .hud-item.xp .val { color: var(--accent2); }
+
+  .mascot-bubble {
+    width: 100%;
+    max-width: 680px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    min-height: 72px;
+  }
+  .mascot-face { font-size: 2.2rem; flex-shrink: 0; }
+  .mascot-text { font-size: .95rem; font-weight: 600; color: var(--text); line-height: 1.4; }
+
+  .problem-card {
+    width: 100%;
+    max-width: 680px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 32px 28px;
+    text-align: center;
+  }
+  .level-badge {
+    display: inline-block;
+    background: var(--accent3);
+    color: #fff;
+    font-size: .75rem;
+    font-weight: 800;
+    padding: 4px 12px;
+    border-radius: 50px;
+    margin-bottom: 16px;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+  }
+  .problem-text {
+    font-family: 'Fredoka One', cursive;
+    font-size: 3rem;
+    color: var(--text);
+    margin-bottom: 24px;
+    line-height: 1.2;
+  }
+  .problem-text.word-problem { font-family: 'Nunito', sans-serif; font-size: 1.3rem; font-weight: 700; }
+
+  .answer-row { display: flex; gap: 12px; justify-content: center; align-items: center; flex-wrap: wrap; }
+  .answer-input {
+    width: 160px;
+    background: var(--panel);
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 10px;
+    font-family: 'Fredoka One', cursive;
+    font-size: 2rem;
+    color: var(--accent);
+    text-align: center;
+    outline: none;
+    transition: border-color .2s;
+  }
+  .answer-input:focus { border-color: var(--accent2); }
+  .answer-input.correct-flash { border-color: var(--accent2); background: #1a3a2e; animation: flash-green .5s ease; }
+  .answer-input.wrong-flash { border-color: var(--accent4); background: #3a1a1a; animation: shake .4s ease; }
+
+  @keyframes flash-green { 0%,100%{} 50%{ box-shadow: 0 0 20px var(--accent2); } }
+  @keyframes shake { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-8px)} 60%{transform:translateX(8px)} }
+
+  .hint-row { display: flex; gap: 10px; justify-content: center; margin-top: 8px; flex-wrap: wrap; }
+
+  .hint-box {
+    width: 100%;
+    max-width: 680px;
+    background: #1a2a1a;
+    border: 1px solid var(--accent2);
+    border-radius: var(--radius);
+    padding: 16px 20px;
+    font-size: .95rem;
+    color: var(--accent2);
+    display: none;
+    animation: fadeIn .3s ease;
+  }
+  .hint-box.visible { display: block; }
+
+  @keyframes fadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+
+  /* XP Bar */
+  .xp-bar-wrap { width: 100%; max-width: 680px; }
+  .xp-bar-label { display: flex; justify-content: space-between; font-size: .75rem; color: var(--muted); margin-bottom: 6px; }
+  .xp-bar-track { background: var(--panel); border-radius: 50px; height: 10px; overflow: hidden; }
+  .xp-bar-fill { height: 100%; background: linear-gradient(90deg, var(--accent3), var(--accent2)); border-radius: 50px; transition: width .5s ease; }
+
+  /* Set progress dots */
+  .set-dots { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+  .dot {
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    background: var(--panel);
+    border: 2px solid var(--border);
+    transition: background .3s, border-color .3s;
+  }
+  .dot.correct { background: var(--accent2); border-color: var(--accent2); }
+  .dot.wrong { background: var(--accent4); border-color: var(--accent4); }
+
+  /* ══════════════════════════════
+     SCREEN: LEVEL UP
+  ══════════════════════════════ */
+  #screen-levelup { justify-content: center; gap: 24px; text-align: center; }
+  .levelup-star { font-size: 5rem; animation: spin-in .6s cubic-bezier(.17,.67,.39,1.3); }
+  @keyframes spin-in { from{transform:scale(0) rotate(-180deg)} to{transform:scale(1) rotate(0)} }
+  .levelup-title { font-family: 'Fredoka One', cursive; font-size: 3rem; color: var(--accent); }
+  .levelup-sub { color: var(--muted); font-size: 1rem; max-width: 360px; }
+  .xp-gained { font-family: 'Fredoka One', cursive; font-size: 1.8rem; color: var(--accent2); }
+
+  /* ══════════════════════════════
+     SCREEN: PARENT DASHBOARD
+  ══════════════════════════════ */
+  #screen-parent { gap: 20px; }
+  .parent-header { width: 100%; max-width: 680px; display: flex; align-items: center; gap: 12px; }
+  .parent-header h2 { font-size: 1.6rem; flex: 1; }
+
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    width: 100%;
+    max-width: 680px;
+  }
+  .stat-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px;
+  }
+  .stat-label { font-size: .75rem; text-transform: uppercase; letter-spacing: .8px; color: var(--muted); margin-bottom: 6px; }
+  .stat-val { font-family: 'Fredoka One', cursive; font-size: 2rem; color: var(--accent); }
+  .stat-sub { font-size: .8rem; color: var(--muted); margin-top: 2px; }
+
+  .accuracy-bars { width: 100%; max-width: 680px; }
+  .acc-row { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+  .acc-label { width: 90px; font-size: .85rem; font-weight: 700; color: var(--muted); flex-shrink: 0; }
+  .acc-track { flex: 1; background: var(--panel); border-radius: 50px; height: 12px; overflow: hidden; }
+  .acc-fill { height: 100%; border-radius: 50px; transition: width .6s ease; }
+  .acc-pct { width: 40px; text-align: right; font-size: .85rem; font-weight: 800; color: var(--text); }
+
+  .session-list { width: 100%; max-width: 680px; }
+  .session-item {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 18px;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: .9rem;
+  }
+  .session-date { color: var(--muted); font-size: .8rem; }
+
+  /* ══════════════════════════════
+     SCREEN: PARENT PIN
+  ══════════════════════════════ */
+  #screen-pin { justify-content: center; gap: 20px; }
+  .pin-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 36px 32px; text-align: center; width: 100%; max-width: 360px; }
+  .pin-dots { display: flex; gap: 12px; justify-content: center; margin: 20px 0; }
+  .pin-dot { width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--border); background: transparent; transition: background .2s, border-color .2s; }
+  .pin-dot.filled { background: var(--accent); border-color: var(--accent); }
+  .pin-pad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; max-width: 240px; margin: 0 auto; }
+  .pin-btn {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.4rem;
+    color: var(--text);
+    cursor: pointer;
+    transition: background .15s, transform .1s;
+  }
+  .pin-btn:hover { background: var(--border); transform: scale(1.05); }
+  .pin-error { color: var(--accent4); font-size: .85rem; font-weight: 700; min-height: 20px; }
+
+  /* ══════════════════════════════
+     SCREEN: SETUP (API Key)
+  ══════════════════════════════ */
+  #screen-setup { justify-content: center; gap: 20px; }
+  .setup-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 36px 32px; width: 100%; max-width: 480px; }
+  .setup-card h2 { font-size: 1.6rem; margin-bottom: 8px; }
+  .setup-card p { color: var(--muted); font-size: .9rem; margin-bottom: 20px; line-height: 1.5; }
+  .field-label { font-size: .8rem; font-weight: 800; text-transform: uppercase; letter-spacing: .8px; color: var(--muted); margin-bottom: 6px; }
+  .field-input {
+    width: 100%;
+    background: var(--panel);
+    border: 2px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 16px;
+    font-family: 'Nunito', sans-serif;
+    font-size: .9rem;
+    color: var(--text);
+    outline: none;
+    margin-bottom: 16px;
+    transition: border-color .2s;
+  }
+  .field-input:focus { border-color: var(--accent); }
+  .setup-note { font-size: .78rem; color: var(--muted); background: var(--panel); border-radius: 10px; padding: 12px; margin-top: 4px; line-height: 1.5; }
+  .setup-error { color: var(--accent4); font-size: .85rem; font-weight: 700; margin-bottom: 10px; min-height: 20px; }
+
+  /* ── Utility ── */
+  .center { text-align: center; }
+  .mt8 { margin-top: 8px; }
+  .mt16 { margin-top: 16px; }
+  .mt24 { margin-top: 24px; }
+  .section-title { font-family: 'Fredoka One', cursive; font-size: 1.1rem; color: var(--muted); margin-bottom: 12px; }
+
+  /* ── Confetti ── */
+  .confetti-wrap { position: fixed; inset: 0; pointer-events: none; z-index: 999; overflow: hidden; }
+  .confetti-piece {
+    position: absolute;
+    width: 10px; height: 10px;
+    border-radius: 2px;
+    animation: confetti-fall linear forwards;
+  }
+  @keyframes confetti-fall {
+    0% { transform: translateY(-20px) rotate(0deg); opacity: 1; }
+    100% { transform: translateY(110vh) rotate(720deg); opacity: 0; }
+  }
+
+  /* ── Loading spinner ── */
+  .spinner { width: 20px; height: 20px; border: 3px solid var(--border); border-top-color: var(--accent2); border-radius: 50%; animation: spin .7s linear infinite; display: inline-block; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  @media (max-width: 480px) {
+    .problem-text { font-size: 2.2rem; }
+    .stats-grid { grid-template-columns: 1fr; }
+    .char-grid { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════
+     CONFETTI CONTAINER
+══════════════════════════════ -->
+<div class="confetti-wrap" id="confetti-wrap"></div>
+
+<!-- ══════════════════════════════
+     SCREEN: SETUP (Parent API Key)
+══════════════════════════════ -->
+<div class="screen active" id="screen-setup">
+  <div class="topbar" style="max-width:480px">
+    <div class="logo">Math<span>Quest</span> 🚀</div>
+    <span style="font-size:.8rem;color:var(--muted)">Parent Setup</span>
+  </div>
+  <div class="setup-card">
+    <h2>⚙️ Parent Setup</h2>
+    <p>Enter your Anthropic API key and a 4-digit PIN to unlock the parent dashboard. This only needs to be done once per device.</p>
+
+    <div class="field-label">Anthropic API Key</div>
+    <input class="field-input" id="setup-api-key" type="password" placeholder="sk-ant-api03-..." autocomplete="off">
+
+    <div class="field-label">Set Parent PIN (4 digits)</div>
+    <input class="field-input" id="setup-pin" type="password" maxlength="4" placeholder="e.g. 1234" inputmode="numeric">
+
+    <div class="field-label">Your Child's Name</div>
+    <input class="field-input" id="setup-child-name" type="text" placeholder="e.g. Alex">
+
+    <div class="setup-error" id="setup-error"></div>
+    <button class="btn btn-gold" style="width:100%" onclick="saveSetup()">Save & Start Adventure</button>
+
+    <div class="setup-note mt16">
+      🔒 Your API key is stored only in this browser's localStorage and never sent anywhere except Anthropic's servers.<br><br>
+      💡 Get your key at <strong>console.anthropic.com</strong> — hints and encouragement cost less than $0.01 each.
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════
+     SCREEN: CHARACTER SELECT
+══════════════════════════════ -->
+<div class="screen" id="screen-char">
+  <div class="topbar">
+    <div class="logo">Math<span>Quest</span> 🚀</div>
+  </div>
+  <div style="text-align:center;margin-bottom:24px;max-width:480px">
+    <h2 style="font-size:2rem;margin-bottom:8px">Pick Your Guide! 🌟</h2>
+    <p style="color:var(--muted)">Your guide will help you on your math adventure</p>
+  </div>
+  <div class="char-grid" id="char-grid">
+    <div class="char-card" onclick="selectChar(0)">
+      <div class="char-emoji">🤖</div>
+      <div class="char-name">Nova</div>
+      <div class="char-desc">The Smart Robot</div>
+    </div>
+    <div class="char-card" onclick="selectChar(1)">
+      <div class="char-emoji">🐉</div>
+      <div class="char-name">Blaze</div>
+      <div class="char-desc">The Math Dragon</div>
+    </div>
+    <div class="char-card" onclick="selectChar(2)">
+      <div class="char-emoji">👾</div>
+      <div class="char-name">Cosmo</div>
+      <div class="char-desc">The Alien Genius</div>
+    </div>
+    <div class="char-card" onclick="selectChar(3)">
+      <div class="char-emoji">🦊</div>
+      <div class="char-name">Foxy</div>
+      <div class="char-desc">The Clever Fox</div>
+    </div>
+  </div>
+  <div class="name-row mt24" style="max-width:480px">
+    <input class="name-input" id="char-name-input" type="text" placeholder="Your name..." maxlength="20">
+    <button class="btn btn-gold" onclick="confirmChar()">Let's Go! →</button>
+  </div>
+  <p id="char-error" style="color:var(--accent4);font-weight:700;font-size:.85rem;margin-top:8px;min-height:20px"></p>
+</div>
+
+<!-- ══════════════════════════════
+     SCREEN: PLACEMENT QUIZ
+══════════════════════════════ -->
+<div class="screen" id="screen-placement">
+  <div class="topbar">
+    <div class="logo">Math<span>Quest</span> 🚀</div>
+    <span style="font-size:.85rem;color:var(--muted)" id="placement-counter">Question 1 of 10</span>
+  </div>
+  <div class="placement-header">
+    <h2>Placement Quiz 📋</h2>
+    <p id="placement-mascot-text">Let's see where your adventure begins!</p>
+  </div>
+  <div class="progress-bar-wrap">
+    <div class="progress-bar-fill" id="placement-progress" style="width:0%"></div>
+  </div>
+  <div class="quiz-card">
+    <div class="q-number" id="q-number">Question 1</div>
+    <div class="q-text" id="q-text">2 + 3 = ?</div>
+    <input class="q-input" id="q-input" type="number" inputmode="numeric" placeholder="?">
+    <div class="q-feedback" id="q-feedback"></div>
+    <button class="btn btn-gold mt16" onclick="submitPlacement()">Submit ✓</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════
+     SCREEN: MAIN GAME
+══════════════════════════════ -->
+<div class="screen" id="screen-game">
+  <div class="topbar">
+    <div class="logo">Math<span>Quest</span> 🚀</div>
+    <button class="btn btn-ghost btn-sm" onclick="goToParentPin()">👨‍👩‍👧 Parent</button>
+  </div>
+
+  <!-- HUD -->
+  <div class="hud">
+    <div class="hud-item xp">⚡ XP <span class="val" id="hud-xp">0</span></div>
+    <div class="hud-item streak">🔥 Streak <span class="val" id="hud-streak">0</span></div>
+    <div class="hud-item">📚 Level <span class="val" id="hud-level">1</span></div>
+    <div class="hud-item" style="margin-left:auto">
+      <span id="hud-name" style="color:var(--muted);font-size:.85rem"></span>
+      <span id="hud-char" style="font-size:1.2rem;margin-left:4px"></span>
+    </div>
+  </div>
+
+  <!-- XP Bar -->
+  <div class="xp-bar-wrap">
+    <div class="xp-bar-label">
+      <span>Level <span id="xp-level-label">1</span></span>
+      <span><span id="xp-current">0</span> / <span id="xp-next">100</span> XP</span>
+    </div>
+    <div class="xp-bar-track"><div class="xp-bar-fill" id="xp-bar" style="width:0%"></div></div>
+  </div>
+
+  <!-- Mascot bubble -->
+  <div class="mascot-bubble">
+    <div class="mascot-face" id="game-mascot-face">🤖</div>
+    <div class="mascot-text" id="game-mascot-text">Let's crush some math today! 💪</div>
+  </div>
+
+  <!-- Problem -->
+  <div class="problem-card">
+    <div class="level-badge" id="level-badge">Level 1 · Addition</div>
+    <div class="problem-text" id="problem-text">5 + 3 = ?</div>
+    <div class="set-dots" id="set-dots"></div>
+    <div class="answer-row mt16">
+      <input class="answer-input" id="answer-input" type="number" inputmode="numeric" placeholder="?">
+      <button class="btn btn-green" onclick="submitAnswer()">✓ Check</button>
+    </div>
+    <div class="hint-row">
+      <button class="btn btn-ghost btn-sm" onclick="requestHint()" id="hint-btn">💡 Hint</button>
+      <button class="btn btn-ghost btn-sm" onclick="skipProblem()">⏭ Skip</button>
+    </div>
+  </div>
+
+  <!-- Hint box -->
+  <div class="hint-box" id="hint-box">
+    <span id="hint-text"></span>
+  </div>
+</div>
+
+<!-- ══════════════════════════════
+     SCREEN: LEVEL UP
+══════════════════════════════ -->
+<div class="screen" id="screen-levelup" style="justify-content:center">
+  <div class="levelup-star">⭐</div>
+  <div class="levelup-title">Level Up!</div>
+  <div id="levelup-msg" class="levelup-sub">Amazing work! You've mastered this level!</div>
+  <div class="xp-gained" id="levelup-xp">+50 XP</div>
+  <div style="font-size:3rem;margin:8px 0" id="levelup-char">🤖</div>
+  <button class="btn btn-gold" onclick="continueAfterLevelup()">Continue Adventure →</button>
+</div>
+
+<!-- ══════════════════════════════
+     SCREEN: PARENT PIN
+══════════════════════════════ -->
+<div class="screen" id="screen-pin" style="justify-content:center">
+  <div class="pin-card">
+    <h2 style="font-size:1.4rem;margin-bottom:4px">🔒 Parent Dashboard</h2>
+    <p style="color:var(--muted);font-size:.85rem">Enter your 4-digit PIN</p>
+    <div class="pin-dots" id="pin-dots">
+      <div class="pin-dot" id="pd0"></div>
+      <div class="pin-dot" id="pd1"></div>
+      <div class="pin-dot" id="pd2"></div>
+      <div class="pin-dot" id="pd3"></div>
+    </div>
+    <div class="pin-pad">
+      <button class="pin-btn" onclick="pinPress('1')">1</button>
+      <button class="pin-btn" onclick="pinPress('2')">2</button>
+      <button class="pin-btn" onclick="pinPress('3')">3</button>
+      <button class="pin-btn" onclick="pinPress('4')">4</button>
+      <button class="pin-btn" onclick="pinPress('5')">5</button>
+      <button class="pin-btn" onclick="pinPress('6')">6</button>
+      <button class="pin-btn" onclick="pinPress('7')">7</button>
+      <button class="pin-btn" onclick="pinPress('8')">8</button>
+      <button class="pin-btn" onclick="pinPress('9')">9</button>
+      <button class="pin-btn" onclick="pinClear()" style="font-size:.9rem;font-family:'Nunito',sans-serif">Clear</button>
+      <button class="pin-btn" onclick="pinPress('0')">0</button>
+      <button class="pin-btn" onclick="pinBack()" style="font-size:1rem">⌫</button>
+    </div>
+    <div class="pin-error mt8" id="pin-error"></div>
+    <button class="btn btn-ghost btn-sm mt16" onclick="showScreen('screen-game')">← Back</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════
+     SCREEN: PARENT DASHBOARD
+══════════════════════════════ -->
+<div class="screen" id="screen-parent">
+  <div class="parent-header">
+    <h2>📊 Parent Dashboard</h2>
+    <button class="btn btn-ghost btn-sm" onclick="showScreen('screen-game')">← Back to Game</button>
+  </div>
+
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-label">Current Level</div>
+      <div class="stat-val" id="d-level">1</div>
+      <div class="stat-sub" id="d-level-name">Addition Basics</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Total XP</div>
+      <div class="stat-val" id="d-xp">0</div>
+      <div class="stat-sub">experience points</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Best Streak</div>
+      <div class="stat-val" id="d-streak">0</div>
+      <div class="stat-sub">correct in a row</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Total Problems</div>
+      <div class="stat-val" id="d-problems">0</div>
+      <div class="stat-sub" id="d-accuracy">— accuracy</div>
+    </div>
+  </div>
+
+  <div class="accuracy-bars">
+    <div class="section-title">Accuracy by Operation</div>
+    <div class="acc-row">
+      <div class="acc-label">➕ Addition</div>
+      <div class="acc-track"><div class="acc-fill" id="acc-add" style="width:0%;background:#10b981"></div></div>
+      <div class="acc-pct" id="acc-add-pct">—</div>
+    </div>
+    <div class="acc-row">
+      <div class="acc-label">➖ Subtract</div>
+      <div class="acc-track"><div class="acc-fill" id="acc-sub" style="width:0%;background:#6366f1"></div></div>
+      <div class="acc-pct" id="acc-sub-pct">—</div>
+    </div>
+    <div class="acc-row">
+      <div class="acc-label">✖️ Multiply</div>
+      <div class="acc-track"><div class="acc-fill" id="acc-mul" style="width:0%;background:#f59e0b"></div></div>
+      <div class="acc-pct" id="acc-mul-pct">—</div>
+    </div>
+    <div class="acc-row">
+      <div class="acc-label">➗ Divide</div>
+      <div class="acc-track"><div class="acc-fill" id="acc-div" style="width:0%;background:#ef4444"></div></div>
+      <div class="acc-pct" id="acc-div-pct">—</div>
+    </div>
+  </div>
+
+  <div class="session-list">
+    <div class="section-title">Recent Sessions</div>
+    <div id="session-list-content"></div>
+  </div>
+
+  <div style="width:100%;max-width:680px;margin-top:8px">
+    <div class="section-title">Settings</div>
+    <button class="btn btn-red btn-sm" onclick="resetProgress()">🗑 Reset All Progress</button>
+    <button class="btn btn-ghost btn-sm" style="margin-left:10px" onclick="changeSetup()">⚙️ Change API Key / PIN</button>
+  </div>
+</div>
+
+<script>
+// ════════════════════════════════════════════════════════
+//  STATE
+// ════════════════════════════════════════════════════════
+const CHARACTERS = [
+  { name: 'Nova',  emoji: '🤖', color: '#6366f1', phrases: ['Calculating...','My circuits are buzzing!','Logic activated!','Processing your awesomeness!'] },
+  { name: 'Blaze', emoji: '🐉', color: '#ef4444', phrases: ['FIRE it up!','Dragon math powers!','Breathe and think!','You\'re on fire! 🔥'] },
+  { name: 'Cosmo', emoji: '👾', color: '#10b981', phrases: ['Intergalactic!','Alien brain activated!','Computing across galaxies!','This math is universal!'] },
+  { name: 'Foxy',  emoji: '🦊', color: '#f59e0b', phrases: ['Clever as a fox!','Think it through!','Foxes never give up!','You\'ve got this!'] },
+];
+
+const LEVELS = [
+  { name:'Addition Basics',       ops:['add'],          range:[1,10],  xpReq:100 },
+  { name:'Addition Challenge',    ops:['add'],          range:[1,20],  xpReq:150 },
+  { name:'Subtraction Basics',    ops:['sub'],          range:[1,15],  xpReq:150 },
+  { name:'Subtraction Challenge', ops:['sub'],          range:[1,25],  xpReq:200 },
+  { name:'Mixed Add & Subtract',  ops:['add','sub'],    range:[1,30],  xpReq:200 },
+  { name:'Multiplication Intro',  ops:['mul'],          range:[1,5],   xpReq:250 },
+  { name:'Multiplication Tables', ops:['mul'],          range:[1,10],  xpReq:300 },
+  { name:'Division Basics',       ops:['div'],          range:[1,5],   xpReq:300 },
+  { name:'Division Challenge',    ops:['div'],          range:[1,10],  xpReq:350 },
+  { name:'Mixed Operations',      ops:['add','sub','mul','div'], range:[1,10], xpReq:400 },
+];
+
+let state = {
+  apiKey: '',
+  parentPin: '',
+  childName: '',
+  charIdx: -1,
+  level: 0,
+  xp: 0,
+  xpThisLevel: 0,
+  streak: 0,
+  bestStreak: 0,
+  totalProblems: 0,
+  totalCorrect: 0,
+  ops: { add:{a:0,c:0}, sub:{a:0,c:0}, mul:{a:0,c:0}, div:{a:0,c:0} },
+  sessions: [],
+  sessionStart: null,
+  sessionProblems: 0,
+  sessionCorrect: 0,
+};
+
+let currentProblem = null;
+let placementAnswers = [];
+let placementIdx = 0;
+let pinBuffer = '';
+let setResults = [];   // current set of 10
+let setIdx = 0;
+const SET_SIZE = 10;
+const PASS_THRESHOLD = 8;
+
+// ════════════════════════════════════════════════════════
+//  INIT
+// ════════════════════════════════════════════════════════
+window.addEventListener('load', () => {
+  loadState();
+  if (!state.apiKey || !state.parentPin) {
+    showScreen('screen-setup');
+  } else if (!state.childName || state.charIdx < 0) {
+    showScreen('screen-char');
+    if (state.childName) document.getElementById('char-name-input').value = state.childName;
+  } else {
+    initGame();
+    showScreen('screen-game');
+  }
+});
+
+// ════════════════════════════════════════════════════════
+//  PERSISTENCE
+// ════════════════════════════════════════════════════════
+function saveState() { localStorage.setItem('mq_state', JSON.stringify(state)); }
+
+function loadState() {
+  const raw = localStorage.getItem('mq_state');
+  if (raw) {
+    try { Object.assign(state, JSON.parse(raw)); } catch(e) {}
+  }
+}
+
+// ════════════════════════════════════════════════════════
+//  SCREEN MANAGEMENT
+// ════════════════════════════════════════════════════════
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo(0, 0);
+}
+
+// ════════════════════════════════════════════════════════
+//  SETUP SCREEN
+// ════════════════════════════════════════════════════════
+function saveSetup() {
+  const key = document.getElementById('setup-api-key').value.trim();
+  const pin = document.getElementById('setup-pin').value.trim();
+  const name = document.getElementById('setup-child-name').value.trim();
+  const err = document.getElementById('setup-error');
+
+  if (!key.startsWith('sk-')) { err.textContent = 'Please enter a valid Anthropic API key (starts with sk-)'; return; }
+  if (pin.length !== 4 || !/^\d{4}$/.test(pin)) { err.textContent = 'PIN must be exactly 4 digits'; return; }
+  if (!name) { err.textContent = 'Please enter your child\'s name'; return; }
+
+  err.textContent = '';
+  state.apiKey = key;
+  state.parentPin = pin;
+  state.childName = name;
+  saveState();
+
+  if (state.charIdx < 0) showScreen('screen-char');
+  else { initGame(); showScreen('screen-game'); }
+}
+
+function changeSetup() {
+  showScreen('screen-setup');
+  document.getElementById('setup-child-name').value = state.childName || '';
+  document.getElementById('setup-pin').value = '';
+  document.getElementById('setup-api-key').value = '';
+}
+
+// ════════════════════════════════════════════════════════
+//  CHARACTER SELECT
+// ════════════════════════════════════════════════════════
+let selectedChar = -1;
+
+function selectChar(idx) {
+  selectedChar = idx;
+  document.querySelectorAll('.char-card').forEach((c, i) => {
+    c.classList.toggle('selected', i === idx);
+  });
+}
+
+function confirmChar() {
+  const name = document.getElementById('char-name-input').value.trim();
+  const err = document.getElementById('char-error');
+  if (selectedChar < 0) { err.textContent = 'Pick a guide first!'; return; }
+  if (!name) { err.textContent = 'Enter your name!'; return; }
+  err.textContent = '';
+  state.charIdx = selectedChar;
+  state.childName = name;
+  saveState();
+
+  // Check if we've done placement
+  if (state.level === 0 && state.totalProblems === 0) {
+    startPlacement();
+  } else {
+    initGame();
+    showScreen('screen-game');
+  }
+}
+
+// ════════════════════════════════════════════════════════
+//  PLACEMENT QUIZ
+// ════════════════════════════════════════════════════════
+const PLACEMENT_QS = [
+  { text:'7 + 5 = ?',    ans:12,  op:'add' },
+  { text:'15 - 8 = ?',   ans:7,   op:'sub' },
+  { text:'9 + 13 = ?',   ans:22,  op:'add' },
+  { text:'20 - 7 = ?',   ans:13,  op:'sub' },
+  { text:'3 × 4 = ?',    ans:12,  op:'mul' },
+  { text:'6 × 7 = ?',    ans:42,  op:'mul' },
+  { text:'18 ÷ 3 = ?',   ans:6,   op:'div' },
+  { text:'25 + 37 = ?',  ans:62,  op:'add' },
+  { text:'45 - 18 = ?',  ans:27,  op:'sub' },
+  { text:'8 × 9 = ?',    ans:72,  op:'mul' },
+];
+
+function startPlacement() {
+  placementIdx = 0;
+  placementAnswers = [];
+  showScreen('screen-placement');
+  renderPlacementQ();
+  const char = CHARACTERS[state.charIdx];
+  document.getElementById('placement-mascot-text').textContent =
+    `${char.emoji} Hi ${state.childName}! Answer 10 quick questions so I know where to start you. No pressure — just try your best!`;
+}
+
+function renderPlacementQ() {
+  const q = PLACEMENT_QS[placementIdx];
+  document.getElementById('q-number').textContent = `Question ${placementIdx + 1}`;
+  document.getElementById('placement-counter').textContent = `Question ${placementIdx + 1} of 10`;
+  document.getElementById('q-text').textContent = q.text;
+  document.getElementById('q-feedback').textContent = '';
+  document.getElementById('q-feedback').className = 'q-feedback';
+  const input = document.getElementById('q-input');
+  input.value = '';
+  input.focus();
+  document.getElementById('placement-progress').style.width = `${(placementIdx / 10) * 100}%`;
+}
+
+function submitPlacement() {
+  const input = document.getElementById('q-input');
+  const val = parseInt(input.value);
+  if (isNaN(val)) return;
+
+  const q = PLACEMENT_QS[placementIdx];
+  const correct = val === q.ans;
+  placementAnswers.push({ correct, op: q.op });
+
+  const fb = document.getElementById('q-feedback');
+  if (correct) {
+    fb.textContent = '✅ Correct!';
+    fb.className = 'q-feedback correct';
+  } else {
+    fb.textContent = `❌ The answer was ${q.ans}`;
+    fb.className = 'q-feedback wrong';
+  }
+
+  setTimeout(() => {
+    placementIdx++;
+    if (placementIdx >= PLACEMENT_QS.length) {
+      finishPlacement();
+    } else {
+      renderPlacementQ();
+    }
+  }, 800);
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter') {
+    const active = document.querySelector('.screen.active');
+    if (active.id === 'screen-placement') submitPlacement();
+    if (active.id === 'screen-game') submitAnswer();
+  }
+});
+
+function finishPlacement() {
+  const score = placementAnswers.filter(a => a.correct).length;
+  let startLevel = 0;
+  if (score <= 3) startLevel = 0;
+  else if (score <= 5) startLevel = 2;
+  else if (score <= 7) startLevel = 4;
+  else if (score <= 9) startLevel = 6;
+  else startLevel = 8;
+
+  state.level = startLevel;
+  state.xp = 0;
+  state.xpThisLevel = 0;
+  saveState();
+  initGame();
+  showScreen('screen-game');
+  const char = CHARACTERS[state.charIdx];
+  setMascotText(`${char.emoji} Great job on the quiz! You're starting at Level ${startLevel + 1}: ${LEVELS[startLevel].name}. Let's go! 🚀`);
+}
+
+// ════════════════════════════════════════════════════════
+//  GAME INIT
+// ════════════════════════════════════════════════════════
+function initGame() {
+  const char = CHARACTERS[state.charIdx] || CHARACTERS[0];
+  document.getElementById('hud-char').textContent = char.emoji;
+  document.getElementById('hud-name').textContent = state.childName;
+  document.getElementById('game-mascot-face').textContent = char.emoji;
+  updateHUD();
+  setResults = [];
+  setIdx = 0;
+  renderDots();
+  startSession();
+  nextProblem();
+}
+
+function startSession() {
+  state.sessionStart = Date.now();
+  state.sessionProblems = 0;
+  state.sessionCorrect = 0;
+}
+
+// ════════════════════════════════════════════════════════
+//  PROBLEM GENERATION
+// ════════════════════════════════════════════════════════
+function generateProblem() {
+  const lvl = LEVELS[state.level];
+  const op = lvl.ops[Math.floor(Math.random() * lvl.ops.length)];
+  const [lo, hi] = lvl.range;
+  let a, b, ans, text;
+
+  if (op === 'add') {
+    a = rand(lo, hi); b = rand(lo, hi);
+    ans = a + b; text = `${a} + ${b} = ?`;
+  } else if (op === 'sub') {
+    a = rand(lo + 5, hi + 5); b = rand(lo, a);
+    ans = a - b; text = `${a} − ${b} = ?`;
+  } else if (op === 'mul') {
+    a = rand(2, hi); b = rand(2, hi);
+    ans = a * b; text = `${a} × ${b} = ?`;
+  } else {
+    b = rand(2, hi); ans = rand(1, hi);
+    a = b * ans;
+    text = `${a} ÷ ${b} = ?`;
+  }
+  return { text, ans, op };
+}
+
+function rand(lo, hi) { return Math.floor(Math.random() * (hi - lo + 1)) + lo; }
+
+function nextProblem() {
+  if (setIdx >= SET_SIZE) {
+    evaluateSet();
+    return;
+  }
+  currentProblem = generateProblem();
+  const lvl = LEVELS[state.level];
+  document.getElementById('problem-text').textContent = currentProblem.text;
+  document.getElementById('problem-text').className = 'problem-text';
+  document.getElementById('level-badge').textContent = `Level ${state.level + 1} · ${lvl.name}`;
+  const input = document.getElementById('answer-input');
+  input.value = '';
+  input.className = 'answer-input';
+  document.getElementById('hint-box').classList.remove('visible');
+  document.getElementById('hint-btn').disabled = false;
+  input.focus();
+  renderDots();
+}
+
+// ════════════════════════════════════════════════════════
+//  ANSWER CHECKING (free JS logic)
+// ════════════════════════════════════════════════════════
+function submitAnswer() {
+  if (!currentProblem) return;
+  const input = document.getElementById('answer-input');
+  const val = parseInt(input.value);
+  if (isNaN(val)) { input.focus(); return; }
+
+  const correct = val === currentProblem.ans;
+  const op = currentProblem.op;
+  state.ops[op].a++;
+  state.totalProblems++;
+  state.sessionProblems++;
+
+  if (correct) {
+    state.ops[op].c++;
+    state.totalCorrect++;
+    state.sessionCorrect++;
+    state.streak++;
+    if (state.streak > state.bestStreak) state.bestStreak = state.streak;
+
+    const xpGain = 10 + Math.min(state.streak * 2, 20);
+    state.xp += xpGain;
+    state.xpThisLevel += xpGain;
+
+    input.className = 'answer-input correct-flash';
+    setResults.push('correct');
+    setIdx++;
+    randomMascotPhrase();
+    updateHUD();
+    saveState();
+
+    setTimeout(nextProblem, 600);
+  } else {
+    state.streak = 0;
+    input.className = 'answer-input wrong-flash';
+    setResults.push('wrong');
+    setIdx++;
+    setMascotText(`Not quite! Try again — the answer to "${currentProblem.text.replace('= ?', '')}" is ${currentProblem.ans}. You'll get the next one! 💪`);
+    updateHUD();
+    saveState();
+    setTimeout(nextProblem, 1400);
+  }
+}
+
+// ════════════════════════════════════════════════════════
+//  SET EVALUATION
+// ════════════════════════════════════════════════════════
+function evaluateSet() {
+  const correct = setResults.filter(r => r === 'correct').length;
+  const passed = correct >= PASS_THRESHOLD;
+
+  if (passed) {
+    const xpReq = LEVELS[state.level].xpReq;
+    if (state.xpThisLevel >= xpReq && state.level < LEVELS.length - 1) {
+      triggerLevelUp();
+      return;
+    }
+  }
+
+  // Start a new set
+  setResults = [];
+  setIdx = 0;
+
+  if (passed) {
+    setMascotText(`🎉 ${correct}/10 correct! Amazing set! Keep going!`);
+    triggerConfetti(20);
+  } else {
+    setMascotText(`${correct}/10 correct. That's okay — let's practice more. You need ${PASS_THRESHOLD}/10 to level up!`);
+  }
+  nextProblem();
+}
+
+// ════════════════════════════════════════════════════════
+//  LEVEL UP
+// ════════════════════════════════════════════════════════
+function triggerLevelUp() {
+  const oldLevel = state.level;
+  state.level = Math.min(state.level + 1, LEVELS.length - 1);
+  state.xpThisLevel = 0;
+  saveState();
+
+  triggerConfetti(60);
+  const char = CHARACTERS[state.charIdx];
+  document.getElementById('levelup-char').textContent = char.emoji;
+  document.getElementById('levelup-msg').textContent =
+    `You've mastered ${LEVELS[oldLevel].name}! Up next: ${LEVELS[state.level].name}`;
+  document.getElementById('levelup-xp').textContent = `+50 Bonus XP 🎉`;
+  state.xp += 50;
+  saveState();
+  showScreen('screen-levelup');
+  logSession();
+}
+
+function continueAfterLevelup() {
+  setResults = [];
+  setIdx = 0;
+  initGame();
+  showScreen('screen-game');
+}
+
+// ════════════════════════════════════════════════════════
+//  SKIP
+// ════════════════════════════════════════════════════════
+function skipProblem() {
+  state.streak = 0;
+  setResults.push('wrong');
+  setIdx++;
+  updateHUD();
+  setMascotText(`No worries! Let's try the next one. 💪`);
+  nextProblem();
+}
+
+// ════════════════════════════════════════════════════════
+//  HINT (calls Claude API — minimal tokens)
+// ════════════════════════════════════════════════════════
+async function requestHint() {
+  if (!currentProblem) return;
+  const btn = document.getElementById('hint-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>';
+
+  const op = currentProblem.op;
+  const opName = {add:'addition',sub:'subtraction',mul:'multiplication',div:'division'}[op];
+  const prompt = `Give a short, friendly math hint for a 9-year-old solving: ${currentProblem.text}. Operation: ${opName}. Max 2 sentences. No answer, just a strategy tip. Use simple words and maybe an emoji.`;
+
+  try {
+    const hint = await callClaude(prompt, 120);
+    document.getElementById('hint-text').textContent = hint;
+    document.getElementById('hint-box').classList.add('visible');
+  } catch(e) {
+    document.getElementById('hint-text').textContent = 'Hmm, hint unavailable right now. Think about what you know! 💡';
+    document.getElementById('hint-box').classList.add('visible');
+  }
+  btn.disabled = false;
+  btn.innerHTML = '💡 Hint';
+}
+
+// ════════════════════════════════════════════════════════
+//  CLAUDE API (token-minimal)
+// ════════════════════════════════════════════════════════
+async function callClaude(userPrompt, maxTokens = 150) {
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': state.apiKey,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true',
+    },
+    body: JSON.stringify({
+      model: 'claude-haiku-4-5',
+      max_tokens: maxTokens,
+      system: 'You are a friendly math tutor for a 9-year-old. Be encouraging, brief, and fun. Use simple words.',
+      messages: [{ role: 'user', content: userPrompt }],
+    }),
+  });
+  if (!res.ok) throw new Error(`API ${res.status}`);
+  const data = await res.json();
+  return data.content[0].text;
+}
+
+// ════════════════════════════════════════════════════════
+//  HUD + DOTS
+// ════════════════════════════════════════════════════════
+function updateHUD() {
+  document.getElementById('hud-xp').textContent = state.xp;
+  document.getElementById('hud-streak').textContent = state.streak;
+  document.getElementById('hud-level').textContent = state.level + 1;
+  document.getElementById('xp-level-label').textContent = state.level + 1;
+  document.getElementById('xp-current').textContent = state.xpThisLevel;
+  const req = LEVELS[state.level].xpReq;
+  document.getElementById('xp-next').textContent = req;
+  document.getElementById('xp-bar').style.width = `${Math.min((state.xpThisLevel / req) * 100, 100)}%`;
+}
+
+function renderDots() {
+  const wrap = document.getElementById('set-dots');
+  wrap.innerHTML = '';
+  for (let i = 0; i < SET_SIZE; i++) {
+    const d = document.createElement('div');
+    d.className = 'dot';
+    if (i < setResults.length) d.classList.add(setResults[i]);
+    wrap.appendChild(d);
+  }
+}
+
+// ════════════════════════════════════════════════════════
+//  MASCOT
+// ════════════════════════════════════════════════════════
+function setMascotText(text) {
+  document.getElementById('game-mascot-text').textContent = text;
+}
+function randomMascotPhrase() {
+  const char = CHARACTERS[state.charIdx];
+  const phrases = char.phrases;
+  setMascotText(phrases[Math.floor(Math.random() * phrases.length)]);
+}
+
+// ════════════════════════════════════════════════════════
+//  CONFETTI
+// ════════════════════════════════════════════════════════
+function triggerConfetti(count = 30) {
+  const wrap = document.getElementById('confetti-wrap');
+  wrap.innerHTML = '';
+  const colors = ['#f59e0b','#10b981','#6366f1','#ef4444','#ec4899','#3b82f6'];
+  for (let i = 0; i < count; i++) {
+    const p = document.createElement('div');
+    p.className = 'confetti-piece';
+    p.style.left = `${Math.random() * 100}%`;
+    p.style.top = '-10px';
+    p.style.background = colors[Math.floor(Math.random() * colors.length)];
+    p.style.width = `${6 + Math.random() * 8}px`;
+    p.style.height = `${6 + Math.random() * 8}px`;
+    p.style.animationDuration = `${1.5 + Math.random() * 2}s`;
+    p.style.animationDelay = `${Math.random() * .5}s`;
+    wrap.appendChild(p);
+  }
+  setTimeout(() => wrap.innerHTML = '', 3500);
+}
+
+// ════════════════════════════════════════════════════════
+//  PARENT PIN
+// ════════════════════════════════════════════════════════
+function goToParentPin() {
+  pinBuffer = '';
+  updatePinDots();
+  document.getElementById('pin-error').textContent = '';
+  showScreen('screen-pin');
+}
+
+function pinPress(digit) {
+  if (pinBuffer.length >= 4) return;
+  pinBuffer += digit;
+  updatePinDots();
+  if (pinBuffer.length === 4) checkPin();
+}
+
+function pinBack() { pinBuffer = pinBuffer.slice(0, -1); updatePinDots(); }
+function pinClear() { pinBuffer = ''; updatePinDots(); }
+
+function updatePinDots() {
+  for (let i = 0; i < 4; i++) {
+    document.getElementById(`pd${i}`).classList.toggle('filled', i < pinBuffer.length);
+  }
+}
+
+function checkPin() {
+  if (pinBuffer === state.parentPin) {
+    showScreen('screen-parent');
+    renderDashboard();
+  } else {
+    document.getElementById('pin-error').textContent = 'Wrong PIN. Try again!';
+    pinBuffer = '';
+    updatePinDots();
+  }
+}
+
+// ════════════════════════════════════════════════════════
+//  PARENT DASHBOARD
+// ════════════════════════════════════════════════════════
+function renderDashboard() {
+  document.getElementById('d-level').textContent = state.level + 1;
+  document.getElementById('d-level-name').textContent = LEVELS[state.level].name;
+  document.getElementById('d-xp').textContent = state.xp;
+  document.getElementById('d-streak').textContent = state.bestStreak;
+  document.getElementById('d-problems').textContent = state.totalProblems;
+
+  const acc = state.totalProblems > 0
+    ? Math.round((state.totalCorrect / state.totalProblems) * 100)
+    : 0;
+  document.getElementById('d-accuracy').textContent = `${acc}% accuracy`;
+
+  const ops = [
+    { key:'add', id:'acc-add' },
+    { key:'sub', id:'acc-sub' },
+    { key:'mul', id:'acc-mul' },
+    { key:'div', id:'acc-div' },
+  ];
+  ops.forEach(({ key, id }) => {
+    const o = state.ops[key];
+    const pct = o.a > 0 ? Math.round((o.c / o.a) * 100) : 0;
+    document.getElementById(id).style.width = `${pct}%`;
+    document.getElementById(`${id}-pct`).textContent = o.a > 0 ? `${pct}%` : '—';
+  });
+
+  const list = document.getElementById('session-list-content');
+  if (!state.sessions || state.sessions.length === 0) {
+    list.innerHTML = '<p style="color:var(--muted);font-size:.85rem">No sessions yet.</p>';
+  } else {
+    list.innerHTML = state.sessions.slice(-5).reverse().map(s => `
+      <div class="session-item">
+        <div>
+          <div style="font-weight:700">${s.correct}/${s.problems} correct</div>
+          <div class="session-date">${s.date}</div>
+        </div>
+        <div style="color:var(--accent2);font-weight:800">${Math.round((s.correct/Math.max(s.problems,1))*100)}%</div>
+      </div>
+    `).join('');
+  }
+}
+
+function logSession() {
+  if (!state.sessions) state.sessions = [];
+  state.sessions.push({
+    date: new Date().toLocaleDateString('en-US', { month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' }),
+    problems: state.sessionProblems,
+    correct: state.sessionCorrect,
+    level: state.level + 1,
+  });
+  if (state.sessions.length > 20) state.sessions.shift();
+  saveState();
+}
+
+function resetProgress() {
+  if (!confirm('Reset ALL progress? This cannot be undone.')) return;
+  const keep = { apiKey: state.apiKey, parentPin: state.parentPin, childName: state.childName, charIdx: state.charIdx };
+  Object.assign(state, {
+    level:0, xp:0, xpThisLevel:0, streak:0, bestStreak:0,
+    totalProblems:0, totalCorrect:0,
+    ops:{ add:{a:0,c:0}, sub:{a:0,c:0}, mul:{a:0,c:0}, div:{a:0,c:0} },
+    sessions:[], sessionProblems:0, sessionCorrect:0,
+    ...keep
+  });
+  saveState();
+  initGame();
+  showScreen('screen-game');
+}
+</script>
+</body>
+</html>
